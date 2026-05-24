@@ -3,9 +3,10 @@ import speech_recognition as sr
 def listen():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening...")
+        print("\nListening...")
         recognizer.adjust_for_ambient_noise(source, duration=1)
         audio = recognizer.listen(source)
+        
     try:
         text = recognizer.recognize_google(audio)
         print(f"You said: {text}")
@@ -14,5 +15,5 @@ def listen():
         print("Sorry, I could not understand the audio.")
         return ""
     except sr.RequestError as e:
-        print(f"Could not request results; {e}")
+        print(f"[Ears Error] Connection failure: {e}")
         return ""

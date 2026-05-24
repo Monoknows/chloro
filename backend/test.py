@@ -1,3 +1,4 @@
-from brain import ask_chloro
-
-print(ask_chloro("Who are you?"))
+import pyttsx3
+engine = pyttsx3.init()
+engine.say("Testing audio driver connection")
+engine.runAndWait()
