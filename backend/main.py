@@ -3,7 +3,7 @@ from ears import listen
 from voice import speak
 
 def main():
-    speak("Hello! I am CHLORO, your personal assistant. How can I help you today?")
+    speak("Good day, Sir. CHLORO is online. How can I help?")
 
     while True:
         query = listen()
