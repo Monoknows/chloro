@@ -3,8 +3,7 @@ title CHLORO_SYSTEM_BOOT
 echo [BOOT]: Initializing Elevated OpenClaw Gateway Engine...
 
 :: OpenClaw Gateway
-start "" "C:\Program Files\OpenClaw\openclaw.exe" gateway --port 18789
-
+start "" "%appdata%\npm\openclaw.cmd" gateway --port 18789
 :: time to fully boot
 timeout /t 5 /nobreak
 
