@@ -6,10 +6,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/spreadsheets'
-]
+# It needs .modify to allow the batchModify command to mark emails as read!
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/spreadsheets']
 
 def get_google_services():
     """Authenticates the user via browser and returns secure Gmail and Sheets service objects."""
