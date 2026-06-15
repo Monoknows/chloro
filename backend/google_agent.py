@@ -34,13 +34,20 @@ def get_google_services():
 
 def check_job_emails(gmail_service):
     """Scans your inbox for unread messages matching job application keywords."""
-    # Query looking specifically for unread emails containing application tracking buzzwords
     query = "is:unread (application OR interview OR offer OR job)"
     try:
         results = gmail_service.users().messages().list(userId='me', q=query).execute()
         messages = results.get('messages', [])
         
         alerts = []
+        
+        # If no messages are found, return early
+        if not messages:
+            print("📬 [GOOGLE AGENT]: Scan complete. Found 0 unread matching emails.")
+            return []
+
+        print(f"📬 [GOOGLE AGENT]: Incoming data stream detected. Processing {len(messages)} matching emails...")
+
         for msg in messages:
             msg_data = gmail_service.users().messages().get(userId='me', id=msg['id'], format='metadata').execute()
             headers = msg_data.get('payload', {}).get('headers', [])
@@ -66,11 +73,11 @@ def check_job_emails(gmail_service):
 
 def update_spreadsheet(sheets_service, spreadsheet_id, company, position, status):
     """Appends a new row to your Google Job Tracking Sheet automatically."""
-    # Target range: Assumes sheet is named 'Sheet1' and appends data dynamically
+   
     sheet_range = 'Sheet1!A:D' 
     value_input_option = 'USER_ENTERED'
     
-    # Structure data mapping: Company, Position, Current Status, Timestamp/Notes
+
     row_values = [[company, position, status, "Updated automatically by Chloro"]]
     body = {'values': row_values}
     

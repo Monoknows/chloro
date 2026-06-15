@@ -1,56 +1,26 @@
-from brain import ask_chloro
-# Import the functions from your google_agent.py file
-from google_agent import get_google_services, check_job_emails, update_spreadsheet
+from google_agent import get_google_services, check_job_emails
+from ui_linker import set_chloro_ui_state
 
-# paste your actual spreadsheet ID here to test the writing function
-TEST_SPREADSHEET_ID = "1sqI20dH8f9WoM2XpmUNeVB3DjSCotP26XtNy98B0lSw"
-
-print("==================================================")
-print("       CHLORO WORKSPACE AGENT: TESTING SUITE       ")
-print("==================================================")
-
-try:
-    print("\n[STEP 1]: Attempting Google OAuth Connection...")
-    print("👉 Note: If this is your first time, a browser window will pop up asking you to sign in.")
+def run_chloro_email_sync():
+    # Initialize connection
+    gmail_svc, sheets_svc = get_google_services()
     
-    gmail_srv, sheets_srv = get_google_services()
-    print("✅ Success: Google token initialized and services built successfully!")
+    # 1. Trigger thinking state while checking API
+    set_chloro_ui_state("thinking")
     
-    # ─── TEST 1: EMAIL SCANNING ───
-    print("\n[STEP 2]: Scanning inbox for job-related keywords...")
-    found_emails = check_job_emails(gmail_srv)
-    print(f"📬 Scan complete. Found {len(found_emails)} unread matching emails.")
+    # Run the inbox scan
+    job_alerts = check_job_emails(gmail_svc)
+    total_emails = len(job_alerts)
     
-    for email in found_emails:
-        print(f"  -> From: {email['sender']} | Subject: {email['subject']}")
+    # 2. Trigger answering state to deliver the payload text
+    set_chloro_ui_state("answering")
+    
+    print("\n==================================================")
+    print(f"🤖 [CHLORO]: Sir, I have detected {total_emails} new job application emails.")
+    print("==================================================\n")
+    
+    # Return back to standby listening mode
+    set_chloro_ui_state("listening")
 
-    # ─── TEST 2: SHEET LOGGING ───
-    print("\n[STEP 3]: Testing Google Spreadsheet logging entry...")
-    if TEST_SPREADSHEET_ID == "YOUR_GOOGLE_SHEET_LONG_ID_STRING":
-        print("⚠️ Skipped: Update the TEST_SPREADSHEET_ID variable to test writing to your sheet.")
-    else:
-        success = update_spreadsheet(
-            sheets_srv, 
-            TEST_SPREADSHEET_ID, 
-            company="Test Corp", 
-            position="Cybersecurity Engineer", 
-            status="Testing Integration"
-        )
-        if success:
-            print("✅ Success: A test row has been appended to your Google Sheet!")
-        else:
-            print("❌ Failure: Could not write data to the spreadsheet.")
-
-    # ─── TEST 3: CHLORO BRAIN VERIFICATION ───
-    print("\n[STEP 4]: Asking Chloro to evaluate the setup status...")
-    report_query = f"I just successfully connected your background framework to Google APIs. I found {len(found_emails)} new job emails. Give me a quick status acknowledgment."
-    chloro_response = ask_chloro(report_query)
-    print(f"\nCHLORO response: {chloro_response}")
-
-except Exception as global_err:
-    print(f"\n❌ CRITICAL SUITE ERROR: {global_err}")
-    print("Make sure 'credentials.json' is in the same folder and pip packages are installed.")
-
-print("\n==================================================")
-print("               TEST RUN COMPLETE                  ")
-print("==================================================")
+if __name__ == "__main__":
+    run_chloro_email_sync()
