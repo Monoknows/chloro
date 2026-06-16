@@ -33,20 +33,26 @@ def get_google_services():
     return gmail_service, sheets_service
 
 def check_job_emails(gmail_service):
-    """Scans your inbox for unread messages matching job application keywords."""
-    query = "is:unread (application OR interview OR offer OR job)"
+    """Scans inbox for direct company responses, blocking generic job alert spam."""
+    # Query looking for unread tracking buzzwords
+    query = "is:unread (application OR interview OR offer OR job OR status)"
+    
+    # Senders we want to completely ignore because they send massive automated alerts
+    ALERT_BLACKLIST = [
+        "donotreply@match.indeed.com",
+        "donotreply@jobalert.indeed.com",
+        "noreply@e.jobstreet.com",
+        "noreply@email.jobstreet.com"
+    ]
+
     try:
         results = gmail_service.users().messages().list(userId='me', q=query).execute()
         messages = results.get('messages', [])
         
-        alerts = []
+        filtered_alerts = []
         
-        # If no messages are found, return early
         if not messages:
-            print("📬 [GOOGLE AGENT]: Scan complete. Found 0 unread matching emails.")
             return []
-
-        print(f"📬 [GOOGLE AGENT]: Incoming data stream detected. Processing {len(messages)} matching emails...")
 
         for msg in messages:
             msg_data = gmail_service.users().messages().get(userId='me', id=msg['id'], format='metadata').execute()
@@ -57,16 +63,29 @@ def check_job_emails(gmail_service):
             for h in headers:
                 if h['name'] == 'Subject': subject = h['value']
                 if h['name'] == 'From': sender = h['value']
-                
-            alerts.append({"sender": sender, "subject": subject, "id": msg['id']})
             
-            # Mark as read so Chloro doesn't notify you about the same email twice
+            # Step 1: Clean up the sender string to check against blacklist
+            sender_clean = sender.lower()
+            
+            # Step 2: Skip this email if it's an automated marketing/alert blast
+            if any(blacklisted in sender_clean for blacklisted in ALERT_BLACKLIST):
+                # We still mark it as read so it doesn't log on next boot, but we don't notify you!
+                gmail_service.users().messages().batchModify(
+                    userId='me', 
+                    body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
+                ).execute()
+                continue
+                
+            # If it passes the filter, it's highly likely an actual company response!
+            filtered_alerts.append({"sender": sender, "subject": subject, "id": msg['id']})
+            
+            # Mark as read so we process it exactly once
             gmail_service.users().messages().batchModify(
                 userId='me', 
                 body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
             ).execute()
             
-        return alerts
+        return filtered_alerts
     except Exception as e:
         print(f"[GOOGLE AGENT ERROR]: {e}")
         return []
