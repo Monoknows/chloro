@@ -8,7 +8,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-# Import the UI controller module and your smart Gmail scanner function
+# Import the UI controller module and your updated whitelisted Gmail scanner function
 from ui_linker import set_chloro_ui_state
 from google_agent import check_job_emails 
 
@@ -81,25 +81,25 @@ def generate_startup_briefing():
     print(" SYSTEM ONLINE — GOOD DAY, SIR")
     print("==================================================")
 
-    # Output Email Updates First
+    # Output Email Updates First (Using Whitelist Filters)
+    print(f"📬 INCOMING CORRESPONDENCE:")
     if total_emails > 0:
-        print(f"\n INCOMING CORRESPONDENCE:")
-        print(f"   - Sir, I've detected {total_emails} direct company responses regarding your applications:")
+        print(f"   - Sir, I have isolated {total_emails} verified action item updates from recruiters:")
         for item in direct_responses:
             print(f"     🔹 From: {item['sender']}\n        Subject: {item['subject']}")
-        print("\n [CHLORO]: 'Sir, would you like me to read the details of these company updates out loud?'")
+        print("\n🗣️ [CHLORO]: 'Sir, direct communications detected. Shall I read the details out loud?'")
     else:
-        print(f"\n INCOMING CORRESPONDENCE:\n   - Clear of direct recruiter responses on this cycle.")
+        print(f"   - Stream isolated. Zero actionable company responses detected on this cycle.")
 
     # Output your Sheet Analytics
-    print(f"\n INTERVIEWING WITH:")
+    print(f"\n📌 INTERVIEWING WITH:")
     if interviewing_companies:
         for interview in interviewing_companies:
             print(f"   - Active tracking sequence active: {interview}.")
     else:
         print(f"   - No active interview tracking profiles logged right now.")
 
-    print(f"\n WORKSPACE ANALYTICS:")
+    print(f"\n📊 WORKSPACE ANALYTICS:")
     print(f"   - There are currently {pending_follow_ups} applications pending a response matrix update.")
     print(f"   - Automated follow-up pipeline scripts stand prepared for deployment.")
     print("==================================================\n")

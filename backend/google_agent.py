@@ -33,16 +33,17 @@ def get_google_services():
     return gmail_service, sheets_service
 
 def check_job_emails(gmail_service):
-    """Scans inbox for direct company responses, blocking generic job alert spam."""
-    # Query looking for unread tracking buzzwords
-    query = "is:unread (application OR interview OR offer OR job OR status)"
+    """Scans inbox for direct corporate responses using defensive whitelisting."""
+    query = "is:unread (application OR interview OR offer OR job OR status OR confirmation)"
     
-    # Senders we want to completely ignore because they send massive automated alerts
-    ALERT_BLACKLIST = [
-        "donotreply@match.indeed.com",
-        "donotreply@jobalert.indeed.com",
-        "noreply@e.jobstreet.com",
-        "noreply@email.jobstreet.com"
+    # Block list for any email containing these sender strings
+    PLATFORM_BLOCKLIST = ["indeed", "jobstreet", "coursera", "linkedin", "noreply", "alert"]
+    
+    # Whitelist keywords: Subject MUST contain at least one of these to be read
+    SUBJECT_WHITELIST = [
+        "received", "confirmation", "confirmed", "interview", "schedule", 
+        "invitation", "offer", "update", "status", "application to", 
+        "thank you for applying", "next steps"
     ]
 
     try:
@@ -50,7 +51,6 @@ def check_job_emails(gmail_service):
         messages = results.get('messages', [])
         
         filtered_alerts = []
-        
         if not messages:
             return []
 
@@ -64,22 +64,26 @@ def check_job_emails(gmail_service):
                 if h['name'] == 'Subject': subject = h['value']
                 if h['name'] == 'From': sender = h['value']
             
-            # Step 1: Clean up the sender string to check against blacklist
-            sender_clean = sender.lower()
+            sender_lower = sender.lower()
+            subject_lower = subject.lower()
             
-            # Step 2: Skip this email if it's an automated marketing/alert blast
-            if any(blacklisted in sender_clean for blacklisted in ALERT_BLACKLIST):
-                # We still mark it as read so it doesn't log on next boot, but we don't notify you!
+            # RULE 1: If it's from a known automated aggregator platform, kill it immediately
+            if any(platform in sender_lower for platform in PLATFORM_BLOCKLIST):
+                # We still mark it read so it doesn't loop forever, but it's silenced
                 gmail_service.users().messages().batchModify(
                     userId='me', 
                     body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
                 ).execute()
                 continue
                 
-            # If it passes the filter, it's highly likely an actual company response!
-            filtered_alerts.append({"sender": sender, "subject": subject, "id": msg['id']})
+            # RULE 2: Verify the subject line looks like an actual conversation/confirmation
+            is_important = any(keyword in subject_lower for keyword in SUBJECT_WHITELIST)
             
-            # Mark as read so we process it exactly once
+            if is_important:
+                # This is a real target email! (e.g., "Application Confirmation for QA Tester")
+                filtered_alerts.append({"sender": sender, "subject": subject, "id": msg['id']})
+            
+            # Always mark as read to clear out the unread queue securely
             gmail_service.users().messages().batchModify(
                 userId='me', 
                 body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
