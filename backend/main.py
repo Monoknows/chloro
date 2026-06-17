@@ -1,63 +1,52 @@
-import sys
+import os
 import time
 import threading
 import queue
 import win32gui
 import win32con
 
-# Main system processing pipelines
 from brain import ask_chloro
 from ears import listen
 from voice import speak
 
-# Background automated worker assets
-from google_agent import get_google_services, check_job_emails, update_spreadsheet
+from google_agent import get_google_services, check_job_emails
 
-# Identify your frontend's unique identification title
-CHLORO_UI_TITLE = "CHLORO_CORE_MATRIX_v1.0"
+CHLORO_UI_CLASS = "CHLORO"
+TARGET_SPREADSHEET_ID = "1sqI20dH8f9WoM2XpmUNeVB3DjSCotP26XtNy98B0lSw"
 
-# Target Google Spreadsheet ID for logging job applications
-TARGET_SPREADSHEET_ID = "YOUR_GOOGLE_SHEET_LONG_ID_STRING"
-
-# Thread-safe container to hold incoming console text inputs
 text_input_queue = queue.Queue()
+input_ready_event = threading.Event()
+
+system_state = {
+    "unread_job_alerts": 0,
+    "active_interviews": ["Junior Full Stack Developer at Mayan Solutions", "Consultant, Associate - US Shift at Infor"],
+    "pending_follow_ups": 0,
+    "last_sync_time": "Never"
+}
+state_lock = threading.Lock()
 
 
 def terminate_chloro_system():
-    """
-    Locates the floating UI core window via native OS calls
-    and forces a direct application exit on both layers.
-    """
-    print("\n[CHLORO]: Total system shutdown sequence initialized, Sir...")
-    speak("Goodbye! Initiating shutdown sequence. Have a great day!")
-
-    # Search the active Windows application table for Chloro's unique frontend title
+    print("\n[SHUTDOWN]: Terminating Chloro system and cleaning up resources...")
+    speak("Shutting down. Goodbye!")
     hwnd = win32gui.FindWindow(None, CHLORO_UI_TITLE)
-    
     if hwnd:
-        # Send a native Windows 'WM_CLOSE' message to simulate pressing 'X' (ALT+F4)
         win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-        print("[CHLORO]: Frontend Core successfully terminated.")
-    else:
-        print("[CHLORO]: Frontend window was not detected active.")
-
-    print("[CHLORO]: Going offline. Goodbye, Sir.")
     sys.exit(0)
 
-
 def console_input_thread():
-    """Runs concurrently in the background to capture keyboard input without freezing the mic."""
+    """Captures the keyboard input and signals instantly"""
     while True:
         try:
             user_text = input().strip()
             if user_text:
                 text_input_queue.put(user_text)
-        except Exception:
-            break
-
-
+                input_ready_event.set()
+        except Exception as e:
+            break 
+            
 def email_monitor_worker():
-    """Runs continuously in the background, checking for new job alert notifications every 60 seconds."""
+    """Background scanner updating the core system telemetry matrix every 60 seconds."""
     print("[SYSTEM]: Launching background Google Mail & Sheets agent...")
     try:
         gmail_srv, sheets_srv = get_google_services()
@@ -66,70 +55,68 @@ def email_monitor_worker():
         return
 
     while True:
-        # Scan for unread items
-        notifications = check_job_emails(gmail_srv)
-        
-        for alert in notifications:
-            announcement = f"Notice, Sir. You received a job-related email from {alert['sender']}. Subject line: {alert['subject']}."
-            print(f"\n📢 [CHLORO NOTIFICATION]: {announcement}")
-            speak(announcement)
+        try:
+            notifications = check_job_emails(gmail_srv)
             
-            # OPTIONAL: Automatically log to Google Sheets when an alert triggers
-            # update_spreadsheet(sheets_srv, TARGET_SPREADSHEET_ID, "Extracted Company Name", "Extracted Role", "Reviewing Response")
+            with state_lock:
+                system_state["unread_job_alerts"] = len(notifications)
+                system_state["last_sync_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
             
-        # Rest the scanner thread loop for 1 minute before hitting the API endpoints again
+            for alert in notifications:
+                announcement = f"Notice, You recieved a job alert from {alert['sender']}."
+                print(f"[CHLORO NOTIFICATION]: {announcement}")
+                speak(announcement)
+        except Exception as e:
+           print(f"\n[BACKGROUND SYNC WARN]: Telemetry loop hiccup: {e}")   
         time.sleep(60)
 
-
 def main():
-    print("==================================================")
-    print("         CHLORO HYBRID CORE INTERFACE             ")
-    print("==================================================")
+    print("CHLORO HYBRID CORE INTERFACE")
     print("[SYSTEM]: Microphone streaming active...")
     print("[SYSTEM]: Console keyboard tracking active...")
     print("[SYSTEM]: Gmail background scanner running...")
-    print("👉 Speak naturally OR type below at any time, Sir.")
-    print("==================================================")
-    
-    # ─── THREAD INITIALIZATIONS ───
-    # Spin up the concurrent console keyboard text listener
-    input_worker = threading.Thread(target=console_input_thread, daemon=True)
-    input_worker.start()
+    print("Speak naturally OR type below at any time, Sir.")
 
-    # Spin up the concurrent Google Email background monitor
-    bg_monitor = threading.Thread(target=email_monitor_worker, daemon=True)
-    bg_monitor.start()
+    threading.Thread(target=console_input_thread, daemon=True).start()
+    threading.Thread(target=email_monitor_worker, daemon=True).start()
 
-    # Initial system boot voice greeting
-    speak("Good day, Sir. CHLORO dual matrix with workspace telemetry is fully operational.")
+    speak("Operational.")
 
-    # ─── MAIN ORCHESTRATOR LOOP ───
     while True:
+        input_ready_event.wait(timeout=1)
+
         query = ""
 
-        # Check for keyboard console input first
         if not text_input_queue.empty():
             query = text_input_queue.get()
-            print(f"\n[Keyboard Input Received]: {query}")
-
-        # If no text input is waiting, stream mic audio
-        else:
+            print(f"Keyboard Input Detected: {query}")
+            input_ready_event.clear()
+        else 
             query = listen()
             if query:
                 print(f"\n[Vocal Input Received]: {query}")
 
-        # If neither path returned anything, continue looping
-        if not query:
+                if not query:
             continue
 
-        # Phrase matching logic normalized to lowercase for system controls
-        if query.lower() in ["exit", "quit", "goodbye"]:
-            print("CHLORO: Understood, Sir. Shutting down systems.")
+        
+        query_lower = query.lower()
+        if query_lower in ["exit", "quit", "goodbye"]:
             terminate_chloro_system()
             break 
 
-        # Forward query to the core AI engine
-        ai_response = ask_chloro(query)
+    
+        with state_lock:
+            context_header = (
+                f"[SYSTEM METRICS - Unread Job Emails: {system_state['unread_job_alerts']}, "
+                f"Active Track Sequences: {', '.join(system_state['active_interviews'])}, "
+                f"Last Sync: {system_state['last_sync_time']}] "
+            )
+        
+        full_context_query = context_header + query
+
+       
+        ai_response = ask_chloro(full_context_query)
         print(f"CHLORO: {ai_response}")
         speak(ai_response)
 
