@@ -5,27 +5,29 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-# If modifying these scopes, delete the file token.pickle.
-# It needs .modify to allow the batchModify command to mark emails as read!
+# Required Permissions: modifying allows marking emails read, spreadsheets allows tracking logging.
 SCOPES = ['https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/spreadsheets']
 
 def get_google_services():
     """Authenticates the user via browser and returns secure Gmail and Sheets service objects."""
     creds = None
-    # The file token.pickle stores the user's access and refresh tokens
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    token_path = os.path.join(os.path.dirname(__file__), 'token.pickle')
+    creds_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+    
+    # Check if access tokens are already available cached locally
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
             creds = pickle.load(token)
             
-    # If there are no valid credentials available, let the user log in.
+    # If there are no valid credentials available, execute OAuth2 handshake loop.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
             creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        # Save the credentials for subsequent execution sessions
+        with open(token_path, 'wb') as token:
             pickle.dump(creds, token)
 
     gmail_service = build('gmail', 'v1', credentials=creds)
@@ -36,15 +38,21 @@ def check_job_emails(gmail_service):
     """Scans inbox for direct corporate responses using defensive whitelisting."""
     query = "is:unread (application OR interview OR offer OR job OR status OR confirmation)"
     
-    # Block list for any email containing these sender strings
-    PLATFORM_BLOCKLIST = ["indeed", "jobstreet", "coursera", "linkedin", "noreply", "alert"]
+    # Block list targeting known automated aggregator and automated distribution pipelines
+    PLATFORM_BLOCKLIST = [
+        "indeed", "jobstreet", "coursera", "linkedin", "glassdoor", "geeksforgeeks",
+        "noreply", "no-reply", "alert", "info@", "customercare", "marketing", "newsletter"
+    ]
     
-    # Whitelist keywords: Subject MUST contain at least one of these to be read
+    # Whitelist keywords: Subject line MUST contain at least one of these to bypass the defensive layer
     SUBJECT_WHITELIST = [
         "received", "confirmation", "confirmed", "interview", "schedule", 
         "invitation", "offer", "update", "status", "application to", 
         "thank you for applying", "next steps"
     ]
+    
+    # Strict secondary trap: If any of these are found, it is explicitly classified as promotional noise
+    PROMO_TRAP = ["%", "off", "refund", "promo", "discount", "cologne", "fragrance", "ends tonight", "cheat sheet"]
 
     try:
         results = gmail_service.users().messages().list(userId='me', q=query).execute()
@@ -67,23 +75,30 @@ def check_job_emails(gmail_service):
             sender_lower = sender.lower()
             subject_lower = subject.lower()
             
-            # RULE 1: If it's from a known automated aggregator platform, kill it immediately
-            if any(platform in sender_lower for platform in PLATFORM_BLOCKLIST):
-                # We still mark it read so it doesn't loop forever, but it's silenced
+            # --- CRITICAL PROTECTION FILTER ---
+            # Rule A: If it matches automated platform handles, kill it immediately.
+            is_spam_sender = any(platform in sender_lower for platform in PLATFORM_BLOCKLIST)
+            
+            # Rule B: If it contains promotional clickbait bait phrases, kill it immediately.
+            is_promo_spam = any(spam_word in subject_lower for spam_word in PROMO_TRAP)
+            
+            if is_spam_sender or is_promo_spam:
+                # Silently clear it out from your unread pile so it doesn't break loop state focus
                 gmail_service.users().messages().batchModify(
                     userId='me', 
                     body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
                 ).execute()
                 continue
                 
-            # RULE 2: Verify the subject line looks like an actual conversation/confirmation
+            # --- VERIFICATION PASSTHROUGH ---
+            # Verify the email is an actual human response or formal application receipt confirmation
             is_important = any(keyword in subject_lower for keyword in SUBJECT_WHITELIST)
             
             if is_important:
-                # This is a real target email! (e.g., "Application Confirmation for QA Tester")
+                # Verified corporate application record
                 filtered_alerts.append({"sender": sender, "subject": subject, "id": msg['id']})
             
-            # Always mark as read to clear out the unread queue securely
+            # Always mark processed emails as read to prevent infinite analysis cycles
             gmail_service.users().messages().batchModify(
                 userId='me', 
                 body={'ids': [msg['id']], 'removeLabelIds': ['UNREAD']}
@@ -96,12 +111,11 @@ def check_job_emails(gmail_service):
 
 def update_spreadsheet(sheets_service, spreadsheet_id, company, position, status):
     """Appends a new row to your Google Job Tracking Sheet automatically."""
-   
-    sheet_range = 'Sheet1!A:D' 
+    sheet_range = 'Sheet1!A:G'  # Updated to match your tracking row limit configuration range
     value_input_option = 'USER_ENTERED'
     
-
-    row_values = [[company, position, status, "Updated automatically by Chloro"]]
+    # Formats row matching your primary sheet arrangement index array
+    row_values = [[company, "", "", status, "", "", position]]
     body = {'values': row_values}
     
     try:
