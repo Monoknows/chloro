@@ -129,7 +129,7 @@ def main():
     ).start()
 
     try:
-        speak("Operational.")
+        speak("Good Day, Sir. Chloro is now online and ready to assist you.")
     except Exception:
         pass
 
