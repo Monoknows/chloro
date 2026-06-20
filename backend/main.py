@@ -5,7 +5,7 @@ import threading
 import queue
 import win32gui
 import win32con
-
+from datetime import datetime
 from brain import ask_chloro
 from ears import listen
 from voice import speak
@@ -107,6 +107,18 @@ def email_monitor_worker():
             print(f"[BACKGROUND SYNC WARN]: {e}")
 
         time.sleep(60)
+def greeting():
+    """Initial greeting message."""
+    current_time = datetime.now()
+    try:
+        if(current_time.hour < 12):
+            speak("Good morning! How can I assist you today?")
+        elif(current_time.hour < 18):
+            speak("Good afternoon! How can I assist you today?")
+        else:
+            speak("Good evening! How can I assist you today?")
+    except Exception as e:
+        print(f"[GREETING ERROR]: {e}")
 
 
 def main():
@@ -128,10 +140,7 @@ def main():
         daemon=True
     ).start()
 
-    try:
-        speak("Good Day, Sir. Chloro is now online and ready to assist you.")
-    except Exception:
-        pass
+    greeting()
 
     while True:
         input_ready_event.wait(timeout=1)
@@ -158,7 +167,6 @@ def main():
                 print(f"[MIC ERROR]: {e}")
                 query = None
 
-        # FIX: Prevent NoneType errors
         if not query:
             continue
 
