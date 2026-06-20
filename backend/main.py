@@ -9,7 +9,7 @@ from datetime import datetime
 from brain import ask_chloro
 from ears import listen
 from voice import speak
-
+from eye import vision
 from google_agent import get_google_services, check_job_emails
 
 CHLORO_UI_CLASS = "CHLORO"
@@ -107,6 +107,7 @@ def email_monitor_worker():
             print(f"[BACKGROUND SYNC WARN]: {e}")
 
         time.sleep(60)
+        
 def greeting():
     """Initial greeting message."""
     current_time = datetime.now()
