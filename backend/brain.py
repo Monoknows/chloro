@@ -1,9 +1,9 @@
 import os
 import json
+import base64
 import subprocess
 import urllib.error
 import urllib.request
-
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -23,6 +23,8 @@ MODEL = os.getenv("CHLORO_MODEL", "openclaw/default")
 
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHLORO_TIMEOUT", "120"))
 
+# Visual keyword triggers to optimize token savings
+VISUAL_TRIGGERS = ["look", "see", "holding", "color", "wearing", "this", "shirt", "holding"]
 
 SYSTEM_PROMPT = """
 You are CHLORO, Sir's personal AI assistant.
@@ -39,7 +41,6 @@ Safety:
 - Do not claim you can directly control the computer unless the local CHLORO app has explicitly implemented that action.
 - For risky actions such as deleting files, installing software, changing security settings, sending messages, or posting online, say that approval is needed first.
 """.strip()
-
 
 APP_LAUNCHERS = {
     "vscode": ("Visual Studio Code", ["code", PROJECT_ROOT]),
@@ -112,13 +113,47 @@ def _load_gateway_auth_header():
     return {}
 
 
+def _encode_image(image_path):
+    """Converts a local snapshot file to base64 for vision processing."""
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode("utf-8")
+    except Exception:
+        return None
+
+
 def ask_gateway(question):
+    # Base text structure
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ]
+
+    snapshot_path = os.path.join(BASE_DIR, "snapshot.jpg")
+    has_visual_trigger = any(trigger in question.lower() for trigger in VISUAL_TRIGGERS)
+
+    # 👁️ Only attach image payload if triggered and snapshot exists
+    if has_visual_trigger and os.path.exists(snapshot_path):
+        base64_image = _encode_image(snapshot_path)
+        if base64_image:
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": question},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                    }
+                ]
+            })
+        else:
+            messages.append({"role": "user", "content": question})
+    else:
+        # Regular low-token fallback text payload
+        messages.append({"role": "user", "content": question})
+
     payload = {
         "model": MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question},
-        ],
+        "messages": messages,
         "stream": False,
     }
 
