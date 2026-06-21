@@ -141,6 +141,12 @@ def main():
         daemon=True
     ).start()
 
+    # 👁️ Spawn Chloro's vision function concurrently
+    threading.Thread(
+        target=vision,
+        daemon=True
+    ).start()
+
     greeting()
 
     while True:

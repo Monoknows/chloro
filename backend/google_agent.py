@@ -5,7 +5,6 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-# Required Permissions: modifying allows marking emails read, spreadsheets allows tracking logging.
 SCOPES = ['https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/spreadsheets']
 
 def get_google_services():
@@ -14,12 +13,12 @@ def get_google_services():
     token_path = os.path.join(os.path.dirname(__file__), 'token.pickle')
     creds_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
     
-    # Check if access tokens are already available cached locally
+
     if os.path.exists(token_path):
         with open(token_path, 'rb') as token:
             creds = pickle.load(token)
             
-    # If there are no valid credentials available, execute OAuth2 handshake loop.
+    
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
