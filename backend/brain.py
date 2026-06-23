@@ -25,7 +25,8 @@ REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHLORO_TIMEOUT", "120"))
 
 # Visual keyword triggers to optimize token savings
 VISUAL_TRIGGERS = ["look", "see", "holding", "color", "wearing", "this", "shirt", "holding"]
-
+CONVERSATION_HISTORY = []  # In-memory conversation history for context
+MAX_HISTORY_ROUNDS = 5  # Limit the number of conversation rounds to keep context manageable
 SYSTEM_PROMPT = """
 You are CHLORO, Sir's personal AI assistant.
 
