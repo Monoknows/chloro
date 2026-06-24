@@ -124,15 +124,17 @@ def _encode_image(image_path):
 
 
 def ask_gateway(question):
+    global CONVERSATION_HISTORY
     # Base text structure
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT}
     ]
+    messages.extend(CONVERSATION_HISTORY)
 
     snapshot_path = os.path.join(BASE_DIR, "snapshot.jpg")
     has_visual_trigger = any(trigger in question.lower() for trigger in VISUAL_TRIGGERS)
 
-    # 👁️ Only attach image payload if triggered and snapshot exists
+    
     if has_visual_trigger and os.path.exists(snapshot_path):
         base64_image = _encode_image(snapshot_path)
         if base64_image:
