@@ -1,39 +1,51 @@
 import time
 from datetime import datetime
+# 🧠 Import Chloro's actual processing brain
+from brain import ask_chloro
 
-# Mocking the speak function for test output visibility
-def speak(text):
-    print(f"🗣️  [AUDIO OUTPUT]: '{text}'")
+def run_brain_diagnostics():
+    print("==================================================")
+    print("      CHLORO CORE COGNITIVE DIAGNOSTIC            ")
+    print("==================================================")
 
-def test_greeting_logic(simulated_hour):
-    """Evaluates greeting routing based on a forced hour input."""
+    # TEST 1: Basic Gateway Communication
+    print("\n[DIAGNOSTIC 1]: Testing Gateway Latency & Response...")
     try:
-        if simulated_hour < 12:
-            speak("Good morning! How can I assist you today?")
-        elif simulated_hour < 18:
-            speak("Good afternoon! How can I assist you today?")
-        else:
-            speak("Good evening! How can I assist you today?")
+        t0 = time.time()
+        response1 = ask_chloro("System ping check. Confirm operational status.")
+        latency = time.time() - t0
+        print(f"🟢 [SUCCESS] Latency: {latency:.2f}s")
+        print(f"🧠 CHLORO: \"{response1}\"")
     except Exception as e:
-        print(f"[ERROR]: {e}")
+        print(f"🔴 [FAIL] Gateway unreachable: {e}")
+        return
+
+    # TEST 2: Active Working Memory Verification
+    print("\n[DIAGNOSTIC 2]: Testing Rolling Context Window Memory...")
+    try:
+        # Step A: Feed her a specific parameter
+        secret_code = "Alpha-99"
+        print(f"📡 Sending Parameter: 'Remember that my security clearance code is {secret_code}.'")
+        ask_chloro(f"Remember that my security clearance code is {secret_code}.")
+        time.sleep(1) # Brief pause for thread cooling
+        
+        # Step B: Force her to look back into her history array
+        print("📡 Querying Memory: 'What was my clearance code?'")
+        response2 = ask_chloro("What was my clearance code?")
+        
+        if secret_code in response2:
+            print("🟢 [SUCCESS] Context retention verified.")
+            print(f"🧠 CHLORO: \"{response2}\"")
+        else:
+            print("🟡 [WARNING] Response received, but context validation failed.")
+            print(f"🧠 CHLORO: \"{response2}\"")
+            
+    except Exception as e:
+        print(f"🔴 [FAIL] Memory validation crashed: {e}")
+
+    print("\n==================================================")
+    print("             DIAGNOSTICS COMPLETE                 ")
+    print("==================================================")
 
 if __name__ == "__main__":
-    print("====================================")
-    print("    CHLORO GREETING MATRIX TEST     ")
-    print("====================================")
-    
-    # Test 1: Morning Check (e.g., 9:00 AM)
-    print("\n[TEST 1] Testing Morning Route (Simulating 09:00)...")
-    test_greeting_logic(9)
-    
-    # Test 2: Afternoon Check (e.g., 3:00 PM / 15:00)
-    print("\n[TEST 2] Testing Afternoon Route (Simulating 15:00)...")
-    test_greeting_logic(15)
-    
-    # Test 3: Evening Check (e.g., 8:00 PM / 20:00)
-    print("\n[TEST 3] Testing Evening Route (Simulating 20:00)...")
-    test_greeting_logic(20)
-    
-    print("\n====================================")
-    print("          DIAGNOSTICS DONE          ")
-    print("====================================")
+    run_brain_diagnostics()

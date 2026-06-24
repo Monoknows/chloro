@@ -176,7 +176,7 @@ def ask_gateway(question):
 
     chloro_respone = result["choices"][0]["message"]["content"].strip()
     CONVERSATION_HISTORY.append({"role": "user", "content": question})
-    CONVERSATION_HISTORY.append({"role": "assistant", "content": chloro_respone
+    CONVERSATION_HISTORY.append ({"role": "assistant", "content": chloro_respone})
 
     while len(CONVERSATION_HISTORY) > (MAX_HISTORY_ROUNDS * 2):
         CONVERSATION_HISTORY.pop(0)
