@@ -174,8 +174,14 @@ def ask_gateway(question):
         response_body = response.read().decode("utf-8")
         result = json.loads(response_body)
 
-    return result["choices"][0]["message"]["content"].strip()
+    chloro_respone = result["choices"][0]["message"]["content"].strip()
+    CONVERSATION_HISTORY.append({"role": "user", "content": question})
+    CONVERSATION_HISTORY.append({"role": "assistant", "content": chloro_respone
 
+    while len(CONVERSATION_HISTORY) > (MAX_HISTORY_ROUNDS * 2):
+        CONVERSATION_HISTORY.pop(0)
+    
+    return chloro_respone
 
 def ask_chloro(question):
     local_response = handle_local_action(question)
