@@ -27,6 +27,7 @@ REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHLORO_TIMEOUT", "120"))
 VISUAL_TRIGGERS = ["look", "see", "holding", "color", "wearing", "this", "shirt", "holding"]
 CONVERSATION_HISTORY = []  # In-memory conversation history for context
 MAX_HISTORY_ROUNDS = 5  # Limit the number of conversation rounds to keep context manageable
+
 SYSTEM_PROMPT = """
 You are CHLORO, Sir's personal AI assistant.
 
@@ -125,6 +126,7 @@ def _encode_image(image_path):
 
 def ask_gateway(question):
     global CONVERSATION_HISTORY
+    
     # Base text structure
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT}
@@ -134,7 +136,6 @@ def ask_gateway(question):
     snapshot_path = os.path.join(BASE_DIR, "snapshot.jpg")
     has_visual_trigger = any(trigger in question.lower() for trigger in VISUAL_TRIGGERS)
 
-    
     if has_visual_trigger and os.path.exists(snapshot_path):
         base64_image = _encode_image(snapshot_path)
         if base64_image:
@@ -151,7 +152,6 @@ def ask_gateway(question):
         else:
             messages.append({"role": "user", "content": question})
     else:
-        # Regular low-token fallback text payload
         messages.append({"role": "user", "content": question})
 
     payload = {
@@ -174,14 +174,23 @@ def ask_gateway(question):
         response_body = response.read().decode("utf-8")
         result = json.loads(response_body)
 
-    chloro_respone = result["choices"][0]["message"]["content"].strip()
-    CONVERSATION_HISTORY.append({"role": "user", "content": question})
-    CONVERSATION_HISTORY.append ({"role": "assistant", "content": chloro_respone})
+    # ✅ FIXED: Corrected spelling to match everywhere
+    chloro_response = result["choices"][0]["message"]["content"].strip()
+    
+    # Clean system telemetry metrics from user questions before appending to text memory
+    clean_user_text = question
+    if "]" in question and question.startswith("[SYSTEM METRICS"):
+        clean_user_text = question.split("]", 1)[-1].strip()
+
+    # ✅ FIXED: We only append text strings here to prevent base64 data leakages in history loops
+    CONVERSATION_HISTORY.append({"role": "user", "content": clean_user_text})
+    CONVERSATION_HISTORY.append({"role": "assistant", "content": chloro_response})
 
     while len(CONVERSATION_HISTORY) > (MAX_HISTORY_ROUNDS * 2):
         CONVERSATION_HISTORY.pop(0)
     
-    return chloro_respone
+    return chloro_response
+
 
 def ask_chloro(question):
     local_response = handle_local_action(question)
