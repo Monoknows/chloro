@@ -1,51 +1,32 @@
 import time
-from datetime import datetime
-# 🧠 Import Chloro's actual processing brain
-from brain import ask_chloro
+from brain import ask_chloro, CONVERSATION_HISTORY
 
-def run_brain_diagnostics():
+def test_memory_retention():
     print("==================================================")
-    print("      CHLORO CORE COGNITIVE DIAGNOSTIC            ")
+    print("         CHLORO MEMORY DIAGNOSTIC MATRIX          ")
     print("==================================================")
-
-    # TEST 1: Basic Gateway Communication
-    print("\n[DIAGNOSTIC 1]: Testing Gateway Latency & Response...")
-    try:
-        t0 = time.time()
-        response1 = ask_chloro("System ping check. Confirm operational status.")
-        latency = time.time() - t0
-        print(f"🟢 [SUCCESS] Latency: {latency:.2f}s")
-        print(f"🧠 CHLORO: \"{response1}\"")
-    except Exception as e:
-        print(f"🔴 [FAIL] Gateway unreachable: {e}")
-        return
-
-    # TEST 2: Active Working Memory Verification
-    print("\n[DIAGNOSTIC 2]: Testing Rolling Context Window Memory...")
-    try:
-        # Step A: Feed her a specific parameter
-        secret_code = "Alpha-99"
-        print(f"📡 Sending Parameter: 'Remember that my security clearance code is {secret_code}.'")
-        ask_chloro(f"Remember that my security clearance code is {secret_code}.")
-        time.sleep(1) # Brief pause for thread cooling
+    
+    # 1. Establish data point
+    prompt1 = "Remember that my secret override keyword is 'Vortex-99'."
+    print(f"🔹 Step 1 (Input): {prompt1}")
+    resp1 = ask_chloro(prompt1)
+    print(f"🧠 Chloro Response: {resp1}\n")
+    
+    time.sleep(1) # Brief cooling pause
+    
+    # 2. Query data point contextually
+    prompt2 = "What was my secret override keyword?"
+    print(f"🔹 Step 2 (Query): {prompt2}")
+    resp2 = ask_chloro(prompt2)
+    print(f"🧠 Chloro Response: {resp2}\n")
+    
+    # 3. Inspect History Array Buffer
+    print("🔹 Step 3: Inspecting RAM buffer state...")
+    print(f"📋 Current Buffer Size: {len(CONVERSATION_HISTORY)} items.")
+    for idx, msg in enumerate(CONVERSATION_HISTORY):
+        print(f"  [{idx}] {msg['role'].upper()}: {msg['content']}")
         
-        # Step B: Force her to look back into her history array
-        print("📡 Querying Memory: 'What was my clearance code?'")
-        response2 = ask_chloro("What was my clearance code?")
-        
-        if secret_code in response2:
-            print("🟢 [SUCCESS] Context retention verified.")
-            print(f"🧠 CHLORO: \"{response2}\"")
-        else:
-            print("🟡 [WARNING] Response received, but context validation failed.")
-            print(f"🧠 CHLORO: \"{response2}\"")
-            
-    except Exception as e:
-        print(f"🔴 [FAIL] Memory validation crashed: {e}")
-
-    print("\n==================================================")
-    print("             DIAGNOSTICS COMPLETE                 ")
     print("==================================================")
 
 if __name__ == "__main__":
-    run_brain_diagnostics()
+    test_memory_retention()
