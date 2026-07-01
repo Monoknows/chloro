@@ -1,32 +1,13 @@
-import time
-from brain import ask_chloro, CONVERSATION_HISTORY
+from brain import ask_chloro
+def test_ask_chloro():
+    # Test a simple query
+    response = ask_chloro("What is the weather today?")
+    assert isinstance(response, str) and len(response) > 0, "Response should be a non-empty string."
 
-def test_memory_retention():
-    print("==================================================")
-    print("         CHLORO MEMORY DIAGNOSTIC MATRIX          ")
-    print("==================================================")
-    
-    # 1. Establish data point
-    prompt1 = "Remember that my secret override keyword is 'Vortex-99'."
-    print(f"🔹 Step 1 (Input): {prompt1}")
-    resp1 = ask_chloro(prompt1)
-    print(f"🧠 Chloro Response: {resp1}\n")
-    
-    time.sleep(1) # Brief cooling pause
-    
-    # 2. Query data point contextually
-    prompt2 = "What was my secret override keyword?"
-    print(f"🔹 Step 2 (Query): {prompt2}")
-    resp2 = ask_chloro(prompt2)
-    print(f"🧠 Chloro Response: {resp2}\n")
-    
-    # 3. Inspect History Array Buffer
-    print("🔹 Step 3: Inspecting RAM buffer state...")
-    print(f"📋 Current Buffer Size: {len(CONVERSATION_HISTORY)} items.")
-    for idx, msg in enumerate(CONVERSATION_HISTORY):
-        print(f"  [{idx}] {msg['role'].upper()}: {msg['content']}")
-        
-    print("==================================================")
+    # Test a query with visual trigger (assuming snapshot.jpg exists)
+    response_with_visual = ask_chloro("Can you analyze the image?")
+    assert isinstance(response_with_visual, str) and len(response_with_visual) > 0, "Response with visual trigger should be a non-empty string."
 
-if __name__ == "__main__":
-    test_memory_retention()
+    # Test an empty query
+    response_empty = ask_chloro("")
+    assert isinstance(response_empty, str), "Response to empty query should still be a string."
